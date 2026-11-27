@@ -2,6 +2,10 @@ require "rake/clean"
 
 CLEAN.include("../QR.*")
 CLEAN.include("../QR-face.rb")
+CLEAN.include(*%w(
+  ../QR-rainbow.rb ../QR-rainbow-small.rb ../QR-rainbow-micro.rb
+  rainbow.txt rainbow-small.txt rainbow-micro.txt
+))
 CLEAN.include("../qr.*")
 CLEAN.include("../QR$*")
 CLEAN.include("../QR")
@@ -36,6 +40,32 @@ end
 file "../QR-face.rb" => ["QR.rb.gen.rb", *LIBS, "hello-kitty-face.txt"] do
   ruby "QR.rb.gen.rb", "hello-kitty-face.txt", "../QR-face.rb"
 end
+
+file "rainbow.txt" => "rainbow.txt.gen.rb" do
+  ruby "rainbow.txt.gen.rb", "157", "47", "rainbow.txt"
+end
+
+file "rainbow-small.txt" => "rainbow.txt.gen.rb" do
+  ruby "rainbow.txt.gen.rb", "79", "23", "rainbow-small.txt"
+end
+
+file "rainbow-micro.txt" => "rainbow.txt.gen.rb" do
+  ruby "rainbow.txt.gen.rb", "21", "1", "rainbow-micro.txt", "--background-only"
+end
+
+file "../QR-rainbow.rb" => ["QR.rb.gen.rb", *LIBS, "rainbow.txt"] do
+  ruby "QR.rb.gen.rb", "rainbow.txt", "../QR-rainbow.rb"
+end
+
+file "../QR-rainbow-small.rb" => ["QR.rb.gen.rb", *LIBS, "rainbow-small.txt"] do
+  ruby "QR.rb.gen.rb", "rainbow-small.txt", "../QR-rainbow-small.rb"
+end
+
+file "../QR-rainbow-micro.rb" => ["QR.rb.gen.rb", *LIBS, "rainbow-micro.txt"] do
+  ruby "QR.rb.gen.rb", "rainbow-micro.txt", "../QR-rainbow-micro.rb"
+end
+
+task :rainbow => %w(../QR-rainbow.rb ../QR-rainbow-small.rb ../QR-rainbow-micro.rb)
 
 file "../README.md" => ["README.md.gen.rb", *LIBS] do
   ruby "README.md.gen.rb"
@@ -74,7 +104,7 @@ task :default => %w(
   ../Makefile
   ../.github/workflows/main.yml
   ../Dockerfile
-)
+) + [:rainbow]
 
 task "../SHA256SUMS" => ["SHA256SUMS.gen.rb", *LIBS] do
   ruby "SHA256SUMS.gen.rb"

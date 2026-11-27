@@ -112,36 +112,63 @@ class Python_R_Ratfor_Rc_REXX < CodeGen
     END
   end
 
-  PaletteCode = <<-'END'.lines.map {|l| l.strip }.join
+  RexxOutput = <<-'END'.lines.map {|l| l.strip }.join
+        print("cat("+repr(lf)+",")\n
+        @@REXX_LOOP@@
+          print(repr("".join("r=fput(char(%d))"%ord(c)+lf for c in rc))+",")\n
+        print(repr("end"+lf)+',sep="")')#
+  END
+
+  PaletteRexx = RexxOutput.sub("@@REXX_LOOP@@", %q(for l in source.split(lf):rc="echo 'say x2c(''%s'')'"%l.encode().hex()+lf;))
+  BinaryRexx = RexxOutput.sub("@@REXX_LOOP@@", %q(for i in range(0,len(source),512):rc="echo 'call charout ,x2c(''%s'')'"%source[i:i+512].hex()+lf;))
+
+  BinaryCode = <<-'END'.lines.map {|l| l.strip }.join.sub("@@REXX_OUTPUT@@") { BinaryRexx }
+      (encoded=[PREV].pack("m0");%(
+        from base64 import b64decode\n
+        lf=chr(10)\n
+        source=b64decode#{E[encoded]}+bytes([10])\n
+        @@REXX_OUTPUT@@
+      ))
+  END
+
+  def self.palette_code(background: false)
+    color_mode = background ? "[34]8" : "38"
+    prefix = background ? 'csi+s[csi.size,2]+";2;"' : 'csi+"38;2;"'
+    values = background ? "[s[csi.size,2].to_i,*channels]" : "channels"
+    format = background ? "%d;2;%d;%d;%dm" : "38;2;%d;%d;%dm"
+    stride = background ? "4" : "3"
+    fields = {
+      "MODES" => color_mode, "PREFIX" => prefix, "VALUES" => values,
+      "FORMAT" => format, "STRIDE" => stride, "REXX_OUTPUT" => PaletteRexx,
+    }
+
+    <<-'END'.lines.map {|l| l.strip }.join.gsub(/@@(\w+)@@/) { fields.fetch($1) }
       (source=PREV;
       esc=27.chr;
       csi=esc+91.chr;
-      sgr=Regexp.new(Regexp.escape(csi)+"(?:0|38;2;[0-9]+;[0-9]+;[0-9]+)m");
+      sgr=Regexp.new(Regexp.escape(csi)+"(?:0|@@MODES@@;2;[0-9]+;[0-9]+;[0-9]+)m");
       palette=[csi+"0m"]|source.scan(sgr);
       width=(palette.size-1).to_s(36).size;
       marker="Qz";marker+="z" while source.include?(marker);
       packed=source.gsub(sgr){marker+palette.index($&).to_s(36).rjust(width,"0")};
       raise if packed.include?(esc);
       rgb=palette.drop(1).map{|s|
-        channels=s.delete_prefix(csi+"38;2;").delete_suffix("m").split(";").map(&:to_i);
-        raise unless s==csi+"38;2;"+channels.join(";")+"m"&&channels.all?{|v|v<256};
-        channels.pack("C*").unpack1("H*")
+        channels=s.delete_prefix(@@PREFIX@@).delete_suffix("m").split(";").map(&:to_i);
+        raise unless s==@@PREFIX@@+channels.join(";")+"m"&&channels.all?{|v|v<256};
+        @@VALUES@@.pack("C*").unpack1("H*")
       }.join;
       %(
         t=bytes.fromhex#{E[rgb]}\n
         esc=chr(27)+chr(91)\n
-        p=(esc+"0m",)+tuple(esc+"38;2;%d;%d;%dm"%tuple(t[i:i+3]) for i in range(0,len(t),3))\n
+        p=(esc+"0m",)+tuple(esc+"@@FORMAT@@"%tuple(t[i:i+@@STRIDE@@]) for i in range(0,len(t),@@STRIDE@@))\n
         a=#{E[packed]}.split#{E[marker]}\n
         chunks=[("",a[0])]+[(p[int(c[:#{width}],36)],c[#{width}:]) for c in a[1:]]\n
         lf=chr(10)\n
         source="".join(s+t for s,t in chunks)\n
-        print("cat("+repr(lf)+",")\n
-        for l in source.split(lf):
-          rc="echo 'say x2c(''%s'')'"%l.encode().hex()+lf;
-          print(repr("".join("r=fput(char(%d))"%ord(c)+lf for c in rc))+",")\n
-        print(repr("end"+lf)+',sep="")')#
+        @@REXX_OUTPUT@@
       ))
-  END
+    END
+  end
 
   def check(prev)
     # python3 reads the source as UTF-8 and hands ord(c) to Fortran's char(), which takes 0..255
@@ -1105,6 +1132,7 @@ class Clojure_CMake_Cobol < CodeGen
   ]
   Apt = ["clojure", "cmake", "gnucobol4"]
   def code
+    # 42 * 255 characters fit in a JVM modified UTF-8 constant at up to six bytes each.
     <<-'END'.lines.map {|l| l.strip }.join
       %(
         (doseq[s
@@ -1114,7 +1142,7 @@ class Clojure_CMake_Cobol < CodeGen
                   (.replace %"\\"""\\"\\"")
                   \\")
                (re-seq #".{1,31}"
-                  "#{e[PREV]}"))
+                  (str#{f(PREV,42){' "'+e[$s]+'"'}})))
              ["."])]
           (println"message(STATUS \\"    \\""(pr-str s)")"))
         )
@@ -1785,3 +1813,4 @@ load "code-gen-pool.rb" if ENV["ALL"]
 
 GenSteps = CodeGen::List.map {|s| s.gen_step }
 RunSteps = CodeGen::List.reverse.flat_map {|s| s.run_steps }
+RelayVariants = %w(face rainbow rainbow-small rainbow-micro)

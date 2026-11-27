@@ -7,13 +7,7 @@ apts.delete("ruby2.1")
 
 srcs = RunSteps.flat_map {|s| s.src }
 
-cp_cmds = srcs.map do |s|
-  "          sudo docker cp qr:/usr/local/share/quine-relay/#{ s } spoiler/"
-end
-cp_cmds += srcs.map do |s|
-  face_name = s.sub(/\Aqr/i, "QR-face")
-  "          sudo docker cp qr:/usr/local/share/quine-relay/qr-face/#{ s } spoiler/#{ face_name }"
-end
+source_lines = srcs.each_slice(8).map {|files| files.join(" ") }.join(" \\\n            ")
 
 File.write(File.join(__dir__, "../.github/workflows/main.yml"), <<END)
 name: CI
@@ -37,7 +31,14 @@ jobs:
         run: |
           git clone https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git spoiler --branch spoiler
           git -C spoiler rm --quiet -r '*'
-#{ cp_cmds.join("\n") }
+          for source in \\
+            #{ source_lines }
+          do
+            sudo docker cp "qr:/usr/local/share/quine-relay/$source" spoiler/
+            for variant in #{ RelayVariants.join(" ") }; do
+              sudo docker cp "qr:/usr/local/share/quine-relay/qr-$variant/$source" "spoiler/QR-$variant${source#??}"
+            done
+          done
           cd spoiler
           git add .
           GIT_AUTHOR_NAME="$(git show -s --format=%an "$GITHUB_SHA")" \\

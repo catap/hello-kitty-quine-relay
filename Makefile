@@ -23,16 +23,21 @@ endif
 
 .PHONY: all relay check clean
 
-all: relay qr-face/QR.rb qr-face/vendor
-	$(MAKE) -C qr-face -f ../Makefile relay
+RELAY_DIRS := qr-face qr-rainbow qr-rainbow-small qr-rainbow-micro
 
-qr-face:
+all: relay $(addsuffix /QR.rb,$(RELAY_DIRS)) $(addsuffix /vendor,$(RELAY_DIRS))
+	$(MAKE) -C qr-face -f ../Makefile relay
+	$(MAKE) -C qr-rainbow -f ../Makefile relay
+	$(MAKE) -C qr-rainbow-small -f ../Makefile relay
+	$(MAKE) -C qr-rainbow-micro -f ../Makefile relay
+
+$(RELAY_DIRS):
 	mkdir -p $@
 
-qr-face/QR.rb: QR-face.rb | qr-face
+$(addsuffix /QR.rb,$(RELAY_DIRS)): qr-%/QR.rb: QR-%.rb | qr-%
 	cp $< $@
 
-qr-face/vendor: | qr-face
+$(addsuffix /vendor,$(RELAY_DIRS)): qr-%/vendor: | qr-%
 	ln -s ../vendor $@
 
 relay: QR2.rb
@@ -1136,4 +1141,4 @@ clean:
 	@mv QR.rb quine-relay.rb
 	rm -f qr QR qr.* QR.* QR2.rb *.class gst.im
 	@mv quine-relay.rb QR.rb
-	rm -rf qr-face
+	rm -rf $(RELAY_DIRS)

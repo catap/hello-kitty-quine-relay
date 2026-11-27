@@ -1,6 +1,7 @@
 require_relative "code-gen"
 
 OUT = []
+relay_dirs = RelayVariants.map {|variant| "qr-#{variant}" }
 
 def banner(s1, s2=nil, i=nil)
   s = "##  #{ "#{ i + 1 }: " if i }#{ s1 }#{ ' -> ' + s2 if s2 }  ##"
@@ -37,16 +38,18 @@ endif
 
 .PHONY: all relay check clean
 
-all: relay qr-face/QR.rb qr-face/vendor
-\t$(MAKE) -C qr-face -f ../Makefile relay
+RELAY_DIRS := #{ relay_dirs.join(" ") }
 
-qr-face:
+all: relay $(addsuffix /QR.rb,$(RELAY_DIRS)) $(addsuffix /vendor,$(RELAY_DIRS))
+#{ relay_dirs.map {|dir| "\t$(MAKE) -C #{dir} -f ../Makefile relay" }.join("\n") }
+
+$(RELAY_DIRS):
 \tmkdir -p $@
 
-qr-face/QR.rb: QR-face.rb | qr-face
+$(addsuffix /QR.rb,$(RELAY_DIRS)): qr-%/QR.rb: QR-%.rb | qr-%
 \tcp $< $@
 
-qr-face/vendor: | qr-face
+$(addsuffix /vendor,$(RELAY_DIRS)): qr-%/vendor: | qr-%
 \tln -s ../vendor $@
 END
 OUT << "relay: QR2.rb"
@@ -89,7 +92,7 @@ clean:
 \t@mv QR.rb quine-relay.rb
 \trm -f qr QR qr.* QR.* QR2.rb *.class gst.im
 \t@mv quine-relay.rb QR.rb
-\trm -rf qr-face
+\trm -rf $(RELAY_DIRS)
 END
 
 File.write("../Makefile", OUT.join("\n"))
