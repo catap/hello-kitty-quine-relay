@@ -31,7 +31,7 @@ FONT = {
   124 => 0x444440, 125 => 0x846448, 126 => 0x5A0000
 }
 
-src = File.foreach("../QR.rb").to_a
+src = File.foreach("../QR.rb").map { |line| line.gsub(/\e\[[0-9;]*m/, "") }
 
 w = src.map {|line| line.chomp.size }.max
 h = src.size

@@ -1,23 +1,27 @@
-# Quine Relay
+# Hello Kitty meets Quine Relay
 
-[![CI](https://github.com/mame/quine-relay/workflows/CI/badge.svg)](https://github.com/mame/quine-relay/actions?query=workflow%3ACI)
+[![CI](https://github.com/catap/hello-kitty-quine-relay/workflows/CI/badge.svg)](https://github.com/catap/hello-kitty-quine-relay/actions?query=workflow%3ACI)
 
 ## What this is
 
-[QR.rb](https://github.com/mame/quine-relay/blob/master/QR.rb) is a Ruby program that generates
+[QR.rb](https://github.com/catap/hello-kitty-quine-relay/blob/master/QR.rb) is a Ruby program that generates
 a Rust program that generates
 a Scala program that generates
 ...(through 128 languages in total)...
 a REXX program that generates
 the original Ruby code again.
 
+In this fork, a small, colorful Hello Kitty meets Quine Relay.
+Run `cat QR.rb` in a terminal with a black background to see the
+artwork, which fits in 157 columns by 47 rows.
+
 ![Language Uroboros][langs]
 
 [langs]: langs.png
 
-(If you want to see the old 50-language version, see the [50](https://github.com/mame/quine-relay/tree/50) branch.)
+See the [spoiler branch](https://github.com/catap/hello-kitty-quine-relay/tree/spoiler) for the generated intermediate programs.
 
-## Usage
+(If you want to see the old 50-language version, see the [50](https://github.com/mame/quine-relay/tree/50) branch.)
 
 ### Ubuntu
 
@@ -388,7 +392,7 @@ See also [:heart:][sponsors].
 
 ### Q. Does it really work?
 
-A. [![CI](https://github.com/mame/quine-relay/workflows/CI/badge.svg)](https://github.com/mame/quine-relay/actions?query=workflow%2ACI)
+A. [![CI](https://github.com/catap/hello-kitty-quine-relay/workflows/CI/badge.svg)](https://github.com/catap/hello-kitty-quine-relay/actions?query=workflow%3ACI)
 
 ### Q. How long did it take you?
 
@@ -592,6 +596,8 @@ See `vendor/README` in detail.
 The MIT License (MIT)
 
 Copyright (c) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024 Yusuke Endoh (@mametter), @hirekoke
+
+Copyright (c) 2026 Kirill A. Korinsky (kirill@korins.ky)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

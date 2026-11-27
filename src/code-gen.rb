@@ -112,6 +112,37 @@ class Python_R_Ratfor_Rc_REXX < CodeGen
     END
   end
 
+  PaletteCode = <<-'END'.lines.map {|l| l.strip }.join
+      (source=PREV;
+      esc=27.chr;
+      csi=esc+91.chr;
+      sgr=Regexp.new(Regexp.escape(csi)+"(?:0|38;2;[0-9]+;[0-9]+;[0-9]+)m");
+      palette=[csi+"0m"]|source.scan(sgr);
+      width=(palette.size-1).to_s(36).size;
+      marker="Qz";marker+="z" while source.include?(marker);
+      packed=source.gsub(sgr){marker+palette.index($&).to_s(36).rjust(width,"0")};
+      raise if packed.include?(esc);
+      rgb=palette.drop(1).map{|s|
+        channels=s.delete_prefix(csi+"38;2;").delete_suffix("m").split(";").map(&:to_i);
+        raise unless s==csi+"38;2;"+channels.join(";")+"m"&&channels.all?{|v|v<256};
+        channels.pack("C*").unpack1("H*")
+      }.join;
+      %(
+        t=bytes.fromhex#{E[rgb]}\n
+        esc=chr(27)+chr(91)\n
+        p=(esc+"0m",)+tuple(esc+"38;2;%d;%d;%dm"%tuple(t[i:i+3]) for i in range(0,len(t),3))\n
+        a=#{E[packed]}.split#{E[marker]}\n
+        chunks=[("",a[0])]+[(p[int(c[:#{width}],36)],c[#{width}:]) for c in a[1:]]\n
+        lf=chr(10)\n
+        source="".join(s+t for s,t in chunks)\n
+        print("cat("+repr(lf)+",")\n
+        for l in source.split(lf):
+          rc="echo 'say x2c(''%s'')'"%l.encode().hex()+lf;
+          print(repr("".join("r=fput(char(%d))"%ord(c)+lf for c in rc))+",")\n
+        print(repr("end"+lf)+',sep="")')#
+      ))
+  END
+
   def check(prev)
     # python3 reads the source as UTF-8 and hands ord(c) to Fortran's char(), which takes 0..255
     raise unless prev.bytes.all? {|c| c < 128 }
@@ -951,7 +982,7 @@ class Erlang < CodeGen
   File = "QR.erl"
   Cmd = "escript QR.erl > OUTFILE"
   Apt = "erlang"
-  Code = %q("\nmain(_)->io:put_chars#{E[PREV]}.")
+  Code = %q(%(\nmain(_)->io:put_chars(["#{V[e[PREV],'",lists:duplicate(', ',92),"']}"]).))
 end
 
 class EmacsLisp < CodeGen
@@ -1265,12 +1296,8 @@ class ATS < CodeGen
   File = "QR.dats"
   Cmd = "patscc -o QR QR.dats && ./QR > OUTFILE"
   Apt = "ats2-lang"
-  Code = %q("implement main0()=print#{E[PREV]}")
-
-  def check(prev)
-    # patscc compiles the C it emits in a strict ISO mode, where a trigraph is translated
-    raise if prev =~ %r{\?\?[=/'()!<>-]}
-  end
+  # Keep consecutive question marks in separate C literals after patscc translates the prints.
+  Code = %q("implement main0()=("+PREV.split(/(?<=\?)(?=\?)/).map{|s|"print"+E[s]}.join(";")+")")
 end
 
 class Asymptote < CodeGen
@@ -1380,29 +1407,11 @@ class Ada < CodeGen
       %(
         with Text_Io;
         procedure qr is$$$
-        begin$$$
-          Text_Io.Put("#{d[PREV].gsub(N,'"&ASCII.LF&"')}");
+        begin\n
+          #{f(PREV,9){%(Text_Io.Put("#{d[$s].gsub(N,'"&ASCII.LF&"')}");\n)}}
         end;
       )
     END
-    #<<-'END'.lines.map {|l| l.strip }.join.gsub("$$$", " ")
-    #  %(
-    #    with Ada.Text_Io;
-    #    procedure qr is$$$
-    #    begin$$$
-    #      #{f(PREV,120){
-    #        %(Ada.Text_Io.Put("#{d[$s].gsub(N,'"&Character'+?'+'Val(10)&"')}");\n)
-    #      }}
-    #      Ada.Text_Io.Put_Line("");
-    #    end;
-    #  )
-    #END
-  end
-
-  def check(prev)
-    # 55 = the program without the string, 11 = the extra chars of "&ASCII.LF&"
-    # gnat allows up to 32766 characters per line
-    raise if prev.size + prev.count(?") + prev.count("\n") * 11 + 55 > 32766
   end
 end
 

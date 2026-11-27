@@ -28,7 +28,7 @@ file "wasm-tmpl.dat" => "wasm-tmpl.dat.gen.rb" do
   ruby "wasm-tmpl.dat.gen.rb"
 end
 
-file "../QR.rb" => ["QR.rb.gen.rb", *LIBS, "uroboros.txt"] do
+file "../QR.rb" => ["QR.rb.gen.rb", *LIBS, "hello-kitty.txt"] do
   ruby "QR.rb.gen.rb"
 end
 
@@ -36,7 +36,7 @@ file "../README.md" => ["README.md.gen.rb", *LIBS] do
   ruby "README.md.gen.rb"
 end
 
-file "../langs.png" => ["langs.png.gen.rb", "uroboros.svg", *LIBS] do
+file "../langs.png" => ["langs.png.gen.rb", "hello-kitty.svg", *LIBS] do
   ruby "langs.png.gen.rb"
 end
 

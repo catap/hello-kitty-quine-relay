@@ -67,15 +67,16 @@ end
 Uroboros = 350.0
 ctx.select_font_face("UnifrakturCook")
 ctx.font_size = 25
-Title = "#{ RunSteps.size }-Language Uroboros Quine"
+Title = "Hello Kitty meets Quine Relay"
 e = ctx.text_extents(Title)
 height = Uroboros / 2 + e.height + 20
 ctx.move_to(-e.width / 2, height / 2)
 ctx.show_text(Title)
 ctx.save do
-  svg = RSVG::Handle.new_from_file("uroboros.svg")
-  ctx.translate(-Uroboros / 2, -height / 2)
-  ctx.scale(Uroboros / svg.width, Uroboros / svg.width)
+  svg = RSVG::Handle.new_from_file("hello-kitty.svg")
+  scale = Uroboros / [svg.width, 2 * svg.height].max
+  ctx.translate(-svg.width * scale / 2, -height / 2)
+  ctx.scale(scale, scale)
   ctx.render_rsvg_handle(svg)
 end
 
