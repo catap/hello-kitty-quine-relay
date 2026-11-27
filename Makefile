@@ -21,7 +21,21 @@ endif
 
 .DELETE_ON_ERROR:
 
-all: QR2.rb
+.PHONY: all relay check clean
+
+all: relay qr-face/QR.rb qr-face/vendor
+	$(MAKE) -C qr-face -f ../Makefile relay
+
+qr-face:
+	mkdir -p $@
+
+qr-face/QR.rb: QR-face.rb | qr-face
+	cp $< $@
+
+qr-face/vendor: | qr-face
+	ln -s ../vendor $@
+
+relay: QR2.rb
 	@echo
 	@echo "#############"
 	@echo "##  CHECK  ##"
@@ -1122,3 +1136,4 @@ clean:
 	@mv QR.rb quine-relay.rb
 	rm -f qr QR qr.* QR.* QR2.rb *.class gst.im
 	@mv quine-relay.rb QR.rb
+	rm -rf qr-face

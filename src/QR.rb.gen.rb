@@ -18,15 +18,27 @@ def fit_stencil(payload, prefix, capacity)
   end
 end
 
-TEMPLATE = File.read(ARGV.fetch(0, "hello-kitty.txt"))
+COPYRIGHT =
+  " Hello Kitty meets Quine Relay (c) 2013-2014 Yusuke Endoh (@mametter), @hirekoke / 2026 Kirill A. Korinsky (kirill@korins.ky) "
+
+TEMPLATE = File.read(ARGV.fetch(0))
+output_path = ARGV.fetch(1)
 width = TEMPLATE[/.*/].size
 artwork = TEMPLATE.include?("\e")
+notice_lines = [COPYRIGHT]
 if artwork
   rows = TEMPLATE.lines(chomp: true)
   raise "invalid ANSI stencil" unless rows.first == "#" * width && rows.last == rows.first &&
     rows.all? { |row| row.gsub(SGR, "").match?(/\A[# ]{#{width}}\z/) }
   ruby_prefix = 'eval(($s=%q('
   ruby_suffix = ')).gsub(/#{27.chr}.*?m/,""))'
+  ruby_suffix = ')).gsub(/\e.*?m/,""))' if COPYRIGHT.size + 2 > width - ruby_suffix.size
+  if COPYRIGHT.size + 2 > width - ruby_suffix.size
+    split = COPYRIGHT.rindex(" ", width - 2)
+    raise "stencil too narrow for copyright footer" unless rows.size > 2 && split &&
+      COPYRIGHT.size - split + 2 <= width - ruby_suffix.size
+    notice_lines = [COPYRIGHT[0...split], COPYRIGHT[split..]]
+  end
   seed = "(#{ ruby_prefix.dump }+$s+#{ ruby_suffix.dump })"
 else
   ruby_prefix = 'eval$s=%q('
@@ -142,6 +154,7 @@ code = <<-END.split.join
 END
 
 capacity = TEMPLATE.count("#") - width
+capacity -= rows[-2].count("#") if notice_lines.size == 2
 if artwork && code.size > capacity
   raise "reserved ANSI spill marker in stencil" if TEMPLATE.lines.any? { |row| row.start_with?(SPILL_MARK) }
   original_payload = code[PACKED_SOURCE, 1]
@@ -161,24 +174,25 @@ cuts = TEMPLATE.scan(SLOT_RUN).inject([0]) {|a, run| a << a[-1] + run.count("#")
 code[-5, 0] = ?; while cuts.any? {|i| code.size - 5 < i && i < code.size }
 PAYLOAD = code[PACKED_SOURCE, 1]
 PADDING = "".ljust(width, "#_buffer_for_future_bug_fixes_")
-COPYRIGHT =
-  " Hello Kitty meets Quine Relay (c) 2013-2014 Yusuke Endoh (@mametter), @hirekoke / 2026 Kirill A. Korinsky (kirill@korins.ky) "
-
 code = TEMPLATE.gsub(SLOT_RUN) do |run|
   count = run.count("#")
   glyphs = code.slice!(0, count).ljust(count, PADDING).each_char
   run.gsub("#") { glyphs.next }
 end.chomp
+rows = code.lines
 if spill
-  rows = code.lines
   chunk_size = 3 * ((spill.bytesize + 3 * (rows.size - 2) - 1) / (3 * (rows.size - 2)))
   spill.bytes.each_slice(chunk_size).with_index(1) do |chunk, i|
     colors = chunk.each_slice(3).map { |r, g, b| "\e[38;2;#{r};#{g || 0};#{b || 0}m" }.join
     rows[i].prepend(SPILL_MARK + colors + "\e[0m")
   end
-  code = rows.join
 end
-footer = artwork ? COPYRIGHT.center(width - ruby_suffix.size, "#") : COPYRIGHT.center(width, "#")[0..-2]
+if notice_lines.size == 2
+  glyphs = notice_lines.first.center(width, "#").each_char
+  rows[-2] = rows[-2].gsub(/#{SGR}|./) { |part| part.start_with?("\e") ? part : glyphs.next }
+end
+code = rows.join
+footer = artwork ? notice_lines.last.center(width - ruby_suffix.size, "#") : COPYRIGHT.center(width, "#")[0..-2]
 code[-width, width] = footer + ruby_suffix
 
 # parse check
@@ -194,4 +208,4 @@ end
 RubyVM::AbstractSyntaxTree.parse($s.gsub(SGR, ""))
 
 run_check((gen_prologue_1 + ?; + hooked).gsub(/[^\S ]/, ""))
-File.write("../QR.rb", code + "\n")
+File.write(output_path, code + "\n")

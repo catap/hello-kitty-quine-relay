@@ -34,8 +34,22 @@ ifeq ($(WASI_RUNTIME),node)
 endif
 
 .DELETE_ON_ERROR:
+
+.PHONY: all relay check clean
+
+all: relay qr-face/QR.rb qr-face/vendor
+\t$(MAKE) -C qr-face -f ../Makefile relay
+
+qr-face:
+\tmkdir -p $@
+
+qr-face/QR.rb: QR-face.rb | qr-face
+\tcp $< $@
+
+qr-face/vendor: | qr-face
+\tln -s ../vendor $@
 END
-OUT << "all: QR2.rb"
+OUT << "relay: QR2.rb"
 banner("CHECK")
 OUT << "\tdiff -s QR.rb QR2.rb"
 OUT << ""
@@ -75,6 +89,7 @@ clean:
 \t@mv QR.rb quine-relay.rb
 \trm -f qr QR qr.* QR.* QR2.rb *.class gst.im
 \t@mv quine-relay.rb QR.rb
+\trm -rf qr-face
 END
 
 File.write("../Makefile", OUT.join("\n"))

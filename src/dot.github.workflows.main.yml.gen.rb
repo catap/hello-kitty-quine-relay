@@ -9,7 +9,11 @@ srcs = RunSteps.flat_map {|s| s.src }
 
 cp_cmds = srcs.map do |s|
   "          sudo docker cp qr:/usr/local/share/quine-relay/#{ s } spoiler/"
-end.join("\n")
+end
+cp_cmds += srcs.map do |s|
+  face_name = s.sub(/\Aqr/i, "QR-face")
+  "          sudo docker cp qr:/usr/local/share/quine-relay/qr-face/#{ s } spoiler/#{ face_name }"
+end
 
 File.write(File.join(__dir__, "../.github/workflows/main.yml"), <<END)
 name: CI
@@ -33,7 +37,7 @@ jobs:
         run: |
           git clone https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git spoiler --branch spoiler
           git -C spoiler rm --quiet -r '*'
-#{ cp_cmds }
+#{ cp_cmds.join("\n") }
           cd spoiler
           git add .
           GIT_AUTHOR_NAME="$(git show -s --format=%an "$GITHUB_SHA")" \\

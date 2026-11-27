@@ -12,8 +12,13 @@ a REXX program that generates
 the original Ruby code again.
 
 In this fork, a small, colorful Hello Kitty meets Quine Relay.
-Run `cat QR.rb` in a terminal with a black background to see the
-artwork, which fits in 157 columns by 47 rows.
+
+In a truecolor terminal with a black background, run `cat QR.rb` to see
+the full artwork, which fits in 157 columns by 47 rows. For a close-up
+that fits in 79 columns by 23 rows, run `cat QR-face.rb`.
+
+How? Kitty is smart enough to hide part of her Ruby source in ANSI color
+sequences.
 
 ![Language Uroboros][langs]
 

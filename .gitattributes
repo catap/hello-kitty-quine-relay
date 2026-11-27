@@ -1,6 +1,7 @@
 /Dockerfile linguist-generated
 /Makefile linguist-generated
 /QR.rb linguist-generated linguist-language=prose
+/QR-face.rb linguist-generated linguist-language=prose
 /README.md linguist-generated
 /SHA256SUMS linguist-generated
 /langs.png linguist-generated

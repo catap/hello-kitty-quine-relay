@@ -4,6 +4,7 @@
 /nimcache
 /.curry
 !QR.rb
+!QR-face.rb
 gst.im
 /src/lazyk-boot.dat
 /src/blc-boot.dat
